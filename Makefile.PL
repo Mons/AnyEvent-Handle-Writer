@@ -10,6 +10,7 @@ requires 'AnyEvent', 5;
 requires 'common::sense', 2;
 
 auto_install;
+auto_provides;
 
 WriteAll;
 

@@ -1,5 +1,6 @@
 package AnyEvent::Handle::Writer;
 
+use 5.8.8;
 use common::sense 2;m{
 use strict;
 use warnings;
@@ -53,11 +54,11 @@ callbacks in write queue and adds a C<push_sendfile()> call, which would be proc
 
 =cut
 
-=head2 unshift_write($data)
+=head2 push_write($data)
 
 L<AnyEvent::Handle/WRITE_QUEUE>
 
-=head2 unshift_write(type => @args)
+=head2 push_write(type => @args)
 
 L<AnyEvent::Handle/WRITE_QUEUE>
 
