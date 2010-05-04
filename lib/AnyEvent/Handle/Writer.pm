@@ -15,7 +15,7 @@ AnyEvent::Handle::Writer - Extended version of AnyEvent::Handle with additional 
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
@@ -128,7 +128,7 @@ sub _shadow_on_drain {
    my $old = shift;
    return sub {
       my $h = shift;
-      #warn "my on drain called";
+      #warn "on drain called";
       #warn "Ready ".int $h;
       $h->{_writer_buffer_clean} = 1;
       if (@{ $h->{_writer_wbuf} || [] }) {
@@ -187,8 +187,16 @@ sub _drain_writer_wbuf {
       if($self->{_writer_wbuf}[0]->($self)) {
          shift @{$self->{_writer_wbuf}};
          # Write nothing but call AE::Handle logic
-         $self->AnyEvent::Handle::push_write('');
       };
+      unless($self->{_ww} or length $self->{_wbuf} ) {
+      	$self->{_writer_ww} = AE::io $self->{fh}, 1, sub {
+      		delete $self->{_writer_ww};
+      		$self->_drain_writer_wbuf;
+      	}
+      } else {
+         $self->_drain_wbuf;
+      }
+      #syswrite($self->{fh},'');
    } else {
       #warn "Not a cb";
       $self->AnyEvent::Handle::push_write(shift @{$self->{_writer_wbuf}});
@@ -207,7 +215,7 @@ Push sendfile operation into write queue. If sendfile cannot be found (L<Sys::Se
 or if it fails with one of ENOSYS, ENOTSUP, EOPNOTSUPP, EAFNOSUPPORT, EPROTOTYPE or ENOTSOCK, it will be emulated with chunked read/write
 
    $handle->push_write("HTTP/1.0 200 OK\nContent-length: $size\n...\n\n");
-   $handle->sendfile($file, $size, $offset);
+   $handle->push_sendfile($file, $size, $offset);
 
 =cut
 
@@ -281,15 +289,18 @@ sub push_sendfile {
       my $sendfile = sub {
          goto &$emulation unless $do_sendfile;
          $open->() or return 1 unless $f;
-         # warn "sendfile $f";
+         # warn "sendfile";
          my $h = $_[0];
          my $len = Sys::Sendfile::sendfile($h->{fh}, $f, $size, $offset);
          if (defined $len) {
-            # warn "Written $len by sendfile";
-            $size -= $offset;
+            # warn "Written $len by sendfile $!";
+            $offset += $len;
+            $size -= $len;
             if ($size > 0) {
+            	# warn "want more (+$size)";
                return 0; # want be called again
             } else {
+            warn "all done";
                close $f;
                return 1; # done
             }
@@ -307,6 +318,7 @@ sub push_sendfile {
             goto &$emulation;
          }
          else {
+         	warn "sendfile: $!";
             $h->_error ($!, 1);
             close $f;
             return 1; # No more requests to me, got an error
@@ -314,6 +326,12 @@ sub push_sendfile {
       };
       $self->push_write($do_sendfile ? $sendfile : $emulation);
 }
+
+#sub DESTROY {
+#	my $self = shift;
+#	warn "DESTROY handle";
+#	return $self->AnyEvent::Handle::DESTROY;
+#}
 
 1;
 

@@ -88,8 +88,8 @@ METHODS
           return 1;
        });
        $handle->push_write("3");
-   
-       # The output will be "123"
+       
+   # The output will be "123"
 
   push_sendfile($filename, [$size, [$offset]]);
     Push sendfile operation into write queue. If sendfile cannot be found
@@ -98,7 +98,7 @@ METHODS
     read/write
 
        $handle->push_write("HTTP/1.0 200 OK\nContent-length: $size\n...\n\n");
-       $handle->sendfile($file, $size, $offset);
+       $handle->push_sendfile($file, $size, $offset);
 
 ACKNOWLEDGEMENTS
 AUTHOR
